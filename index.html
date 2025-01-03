@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Attendance Check</title>
+</head>
+<body>
+  <h1>Class Attendance</h1>
+  <p>Click the button below to capture your location and mark attendance.</p>
+  
+  <label for="rollNo">Roll No:</label>
+  <input type="text" id="rollNo" name="rollNo" /><br/><br/>
+  
+  <button onclick="submitAttendance()">Submit Attendance</button>
+  
+  <p id="result"></p>
+
+  <script>
+    const SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEBAPP_URL_HERE";
+
+    function submitAttendance() {
+      const rollNo = document.getElementById('rollNo').value.trim();
+      if (!rollNo) {
+        alert("Please enter your roll no.");
+        return;
+      }
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            // Extract coords
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+
+            // Build the final URL
+            const url = `${SCRIPT_URL}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}`;
+
+            // Send GET request
+            fetch(url)
+              .then(response => response.text())
+              .then(data => {
+                document.getElementById('result').innerText = data;
+              })
+              .catch(err => {
+                document.getElementById('result').innerText = "Error: " + err;
+              });
+          },
+          (error) => {
+            alert("Location access denied or unavailable.");
+          }
+        );
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    }
+  </script>
+</body>
+</html>
