@@ -32,7 +32,14 @@
   <p id="result"></p>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0fNG5XPLXrKMWY1n3NRojkiaf87rVznH5WOGiBV2bCQH6K0AOyCeM5fUpjV4LzsX8lQ/exec"; // Replace with your Web App URL
+    // Configuration: Set your classroom's latitude and longitude here
+    const CLASSROOM_LATITUDE = 12.345678; // Replace with your classroom's latitude
+    const CLASSROOM_LONGITUDE = 98.765432; // Replace with your classroom's longitude
+    const MAX_DISTANCE_METERS = 50; // Maximum allowed distance from classroom
+    const ALLOWED_TIME_WINDOW_MINUTES = 15; // Time window for attendance submission
+
+    // Replace with your Google Apps Script Web App URL
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0fNG5XPLXrKMWY1n3NRojkiaf87rVznH5WOGiBV2bCQH6K0AOyCeM5fUpjV4LzsX8lQ/exec";
 
     function submitAttendance() {
       const rollNo = document.getElementById('rollNo').value.trim();
@@ -44,12 +51,19 @@
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            // Extract coords
+            // Extract coordinates
             const lat = pos.coords.latitude;
             const lon = pos.coords.longitude;
 
-            // Build the final URL
-            const url = `${SCRIPT_URL}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}`;
+            // Calculate distance on client-side for user feedback
+            const distance = calculateDistance(lat, lon, CLASSROOM_LATITUDE, CLASSROOM_LONGITUDE);
+            if (distance > MAX_DISTANCE_METERS) {
+              alert("You are outside the allowed attendance range.");
+              return;
+            }
+
+            // Build the final URL with query parameters
+            const url = `${https://script.google.com/macros/s/AKfycbx0fNG5XPLXrKMWY1n3NRojkiaf87rVznH5WOGiBV2bCQH6K0AOyCeM5fUpjV4LzsX8lQ/exec}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}`;
 
             // Send GET request
             fetch(url)
@@ -68,6 +82,20 @@
       } else {
         alert("Geolocation is not supported by this browser.");
       }
+    }
+
+    // Helper function to calculate distance between two coordinates in meters
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371e3; // Earth radius in meters
+      const toRad = Math.PI / 180;
+      const dLat = (lat2 - lat1) * toRad;
+      const dLon = (lon2 - lon1) * toRad;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
     }
   </script>
 </body>
