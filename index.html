@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Enhanced Class Attendance</title>
+  <title>Attendance System</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -25,24 +25,36 @@
   <p>Please enter your Roll No and allow location access to mark attendance.</p>
   
   <label for="rollNo">Roll No:</label><br/>
-  <input type="text" id="rollNo" name="rollNo" /><br/><br/>
+  <input type="text" id="rollNo" name="rollNo" placeholder="Enter your Roll No" /><br/><br/>
   
   <button onclick="submitAttendance()">Submit Attendance</button>
   
   <p id="result"></p>
 
   <script>
-    // Configuration: Set your classroom's latitude and longitude here
-    const CLASSROOM_LATITUDE = 12.345678; // Replace with your classroom's latitude
-    const CLASSROOM_LONGITUDE = 98.765432; // Replace with your classroom's longitude
-    const MAX_DISTANCE_METERS = 50; // Maximum allowed distance from classroom
-    const ALLOWED_TIME_WINDOW_MINUTES = 15; // Time window for attendance submission
-
-    // Replace with your Google Apps Script Web App URL
+    // Replace with your actual Google Apps Script Web App URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0fNG5XPLXrKMWY1n3NRojkiaf87rVznH5WOGiBV2bCQH6K0AOyCeM5fUpjV4LzsX8lQ/exec";
 
-    function submitAttendance() {
+    // Secret key for HMAC (do not expose this in production or public-facing apps)
+    const SECRET_KEY = "jK9i3l$YxQ5_rT7p!8mNc4&LzZ2vXo@HfBqKw%6Aa#G";
+
+    // Helper function to generate HMAC SHA-256 signature
+    async function generateSignature(data, secretKey) {
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(secretKey),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"]
+      );
+      const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(data));
+      return btoa(String.fromCharCode(...new Uint8Array(signature)));
+    }
+
+    async function submitAttendance() {
       const rollNo = document.getElementById('rollNo').value.trim();
+      
       if (!rollNo) {
         alert("Please enter your Roll No.");
         return;
@@ -50,29 +62,35 @@
 
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            // Extract coordinates
+          async (pos) => {
+            // Extract user's location
             const lat = pos.coords.latitude;
             const lon = pos.coords.longitude;
+            const timestamp = new Date().toISOString();
+            const deviceId = "browser-client"; // Example device ID (replace as needed)
 
-            // Calculate distance on client-side for user feedback
-            const distance = calculateDistance(lat, lon, CLASSROOM_LATITUDE, CLASSROOM_LONGITUDE);
-            if (distance > MAX_DISTANCE_METERS) {
-              alert("You are outside the allowed attendance range.");
-              return;
-            }
+            // Construct the data string to sign
+            const dataToSign = `${rollNo}:${lat}:${lon}:${timestamp}:${deviceId}`;
+            
+            // Generate HMAC signature
+            const signature = await generateSignature(dataToSign, SECRET_KEY);
 
-            // Build the final URL with query parameters
-            const url = `${https://script.google.com/macros/s/AKfycbx0fNG5XPLXrKMWY1n3NRojkiaf87rVznH5WOGiBV2bCQH6K0AOyCeM5fUpjV4LzsX8lQ/exec}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}`;
+            // Construct the GET request URL with all parameters
+            const url = `${SCRIPT_URL}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}&timestamp=${encodeURIComponent(timestamp)}&deviceId=${encodeURIComponent(deviceId)}&signature=${encodeURIComponent(signature)}`;
 
-            // Send GET request
+            // Log the generated URL for debugging
+            console.log(`Generated URL: ${url}`);
+
+            // Send the GET request to the backend
             fetch(url)
               .then(response => response.text())
               .then(data => {
-                document.getElementById('result').innerText = data;
+                console.log(`Response from server: ${data}`); // Log the server response
+                document.getElementById('result').innerText = data; // Display the response to the user
               })
-              .catch(err => {
-                document.getElementById('result').innerText = "Error: " + err;
+              .catch(error => {
+                console.error(`Error while sending request: ${error}`); // Log any errors
+                document.getElementById('result').innerText = "Error: " + error;
               });
           },
           (error) => {
@@ -82,20 +100,6 @@
       } else {
         alert("Geolocation is not supported by this browser.");
       }
-    }
-
-    // Helper function to calculate distance between two coordinates in meters
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371e3; // Earth radius in meters
-      const toRad = Math.PI / 180;
-      const dLat = (lat2 - lat1) * toRad;
-      const dLon = (lon2 - lon1) * toRad;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
     }
   </script>
 </body>
