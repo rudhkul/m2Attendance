@@ -35,12 +35,19 @@
     // Replace with your actual Google Apps Script Web App URL
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0fNG5XPLXrKMWY1n3NRojkiaf87rVznH5WOGiBV2bCQH6K0AOyCeM5fUpjV4LzsX8lQ/exec";
 
+    let isSubmitting = false; // Prevent duplicate submissions
+
     async function submitAttendance() {
+      if (isSubmitting) return; // Prevent multiple submissions
+      isSubmitting = true;
+      document.getElementById('result').innerText = "Submitting...";
+
       const rollNo = document.getElementById('rollNo').value.trim();
       
       // Validate Roll No (e.g., 5-digit format)
       if (!rollNo || !/^\d{5}$/.test(rollNo)) {
         alert("Please enter a valid Roll No (e.g., 12345).");
+        isSubmitting = false;
         return;
       }
 
@@ -75,6 +82,8 @@
             } catch (error) {
               console.error(`Error while sending request: ${error.message}`); // Debugging: Log error
               document.getElementById('result').innerText = "Error: " + error.message;
+            } finally {
+              isSubmitting = false;
             }
           },
           (error) => {
@@ -93,10 +102,12 @@
                 errorMessage = "An unknown error occurred.";
             }
             alert(errorMessage);
+            isSubmitting = false;
           }
         );
       } else {
         alert("Geolocation is not supported by this browser.");
+        isSubmitting = false;
       }
     }
   </script>
