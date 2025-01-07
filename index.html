@@ -6,74 +6,78 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      text-align: center;
+      margin-top: 50px;
       background-color: #f4f4f9;
     }
-    .container {
-      text-align: center;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
     input, button {
-      margin: 10px 0;
       padding: 10px;
       font-size: 16px;
+      margin: 10px 0;
       width: 80%;
-    }
-    button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    button:disabled {
-      background-color: #aaa;
-      cursor: not-allowed;
+      max-width: 400px;
     }
     #result {
       margin-top: 20px;
-      color: green;
       font-weight: bold;
     }
-    #error {
-      color: red;
-      font-weight: bold;
+    .hidden {
+      display: none;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Attendance Portal</h2>
-    <p>Enter your roll number and password to submit attendance.</p>
-    <input type="text" id="rollNo" placeholder="Roll Number" required>
-    <input type="password" id="password" placeholder="Password" required>
-    <button onclick="submitAttendance()">Submit Attendance</button>
-    <p id="result"></p>
-    <p id="error"></p>
-  </div>
+  <h1>Attendance Portal</h1>
+  <p id="setup-message">Please enter your Roll Number to register.</p>
+  <input type="text" id="rollNo" placeholder="Enter Roll Number" required>
+  <button id="registerBtn" onclick="registerRollNo()">Register</button>
+  <button id="submitBtn" class="hidden" onclick="submitAttendance()">Submit Attendance</button>
+  <p id="result"></p>
+  <p id="error" style="color: red;"></p>
 
   <script>
     const BACKEND_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
 
-    async function submitAttendance() {
+    // Check if the roll number is already stored
+    window.onload = () => {
+      const storedRollNo = localStorage.getItem("rollNo");
+      if (storedRollNo) {
+        document.getElementById("rollNo").value = storedRollNo;
+        document.getElementById("rollNo").setAttribute("disabled", "true");
+        document.getElementById("setup-message").innerText = `Welcome back, Roll Number: ${storedRollNo}`;
+        document.getElementById("registerBtn").classList.add("hidden");
+        document.getElementById("submitBtn").classList.remove("hidden");
+      }
+    };
+
+    // Register roll number for the first time
+    function registerRollNo() {
       const rollNo = document.getElementById("rollNo").value.trim();
-      const password = document.getElementById("password").value.trim();
+      const errorEl = document.getElementById("error");
+      errorEl.innerText = "";
+
+      if (!rollNo) {
+        errorEl.innerText = "Please enter your Roll Number.";
+        return;
+      }
+
+      // Store roll number in localStorage
+      localStorage.setItem("rollNo", rollNo);
+      alert("Roll Number registered successfully! You can now submit attendance.");
+      location.reload(); // Reload to switch to submit mode
+    }
+
+    // Submit attendance
+    async function submitAttendance() {
+      const rollNo = localStorage.getItem("rollNo");
       const resultEl = document.getElementById("result");
       const errorEl = document.getElementById("error");
 
       resultEl.innerText = "";
       errorEl.innerText = "";
 
-      if (!rollNo || !password) {
-        errorEl.innerText = "Please enter both roll number and password.";
+      if (!rollNo) {
+        errorEl.innerText = "No Roll Number found. Please re-scan the QR code and register.";
         return;
       }
 
@@ -87,7 +91,7 @@
             const response = await fetch(BACKEND_URL, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ rollNo, password, lat, lon, timestamp }),
+              body: JSON.stringify({ rollNo, lat, lon, timestamp }),
             });
 
             const result = await response.json();
