@@ -1,100 +1,109 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Attendance System</title>
+  <meta charset="UTF-8">
+  <title>Attendance Portal</title>
   <style>
     body {
       font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f4f4f9;
+    }
+    .container {
       text-align: center;
-      margin-top: 50px;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
     input, button {
+      margin: 10px 0;
       padding: 10px;
       font-size: 16px;
-      margin: 5px;
+      width: 80%;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
     }
     #result {
       margin-top: 20px;
+      color: green;
+      font-weight: bold;
+    }
+    #error {
+      color: red;
       font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <h1>Class Attendance</h1>
-  <p>Please enter your Roll No and allow location access to mark attendance.</p>
-  
-  <label for="rollNo">Roll No:</label><br/>
-  <input type="text" id="rollNo" name="rollNo" placeholder="Enter your Roll No" /><br/><br/>
-  
-  <button onclick="submitAttendance()">Submit Attendance</button>
-  
-  <p id="result"></p>
+  <div class="container">
+    <h2>Attendance Portal</h2>
+    <p>Enter your roll number and password to submit attendance.</p>
+    <input type="text" id="rollNo" placeholder="Roll Number" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <button onclick="submitAttendance()">Submit Attendance</button>
+    <p id="result"></p>
+    <p id="error"></p>
+  </div>
 
   <script>
-    // Replace with your actual Google Apps Script Web App URL
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0fNG5XPLXrKMWY1n3NRojkiaf87rVznH5WOGiBV2bCQH6K0AOyCeM5fUpjV4LzsX8lQ/exec";
-
-    let isSubmitting = false; // Prevent duplicate submissions
+    const BACKEND_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
 
     async function submitAttendance() {
-      if (isSubmitting) return; // Prevent multiple submissions
-      isSubmitting = true;
-      document.getElementById('result').innerText = "Submitting...";
+      const rollNo = document.getElementById("rollNo").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const resultEl = document.getElementById("result");
+      const errorEl = document.getElementById("error");
 
-      const rollNo = document.getElementById('rollNo').value.trim();
-      
-      // Validate Roll No (e.g., 5-digit format)
-      if (!rollNo || !/^\d{5}$/.test(rollNo)) {
-        alert("Please enter a valid Roll No (e.g., 12345).");
-        isSubmitting = false;
+      resultEl.innerText = "";
+      errorEl.innerText = "";
+
+      if (!rollNo || !password) {
+        errorEl.innerText = "Please enter both roll number and password.";
         return;
       }
 
-      // Generate or retrieve a unique device ID
-      let deviceId = localStorage.getItem("deviceId");
-      if (!deviceId) {
-        deviceId = crypto.randomUUID(); // Generates a new unique identifier
-        localStorage.setItem("deviceId", deviceId); // Store it for the session
-      }
-
-      // Get user location
       if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            const timestamp = new Date().toISOString();
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const timestamp = new Date().toISOString();
 
-            // Construct the GET request URL with all parameters
-            const url = `${SCRIPT_URL}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}&timestamp=${encodeURIComponent(timestamp)}&deviceId=${encodeURIComponent(deviceId)}`;
-            console.log(`Request URL: ${url}`);
+          try {
+            const response = await fetch(BACKEND_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ rollNo, password, lat, lon, timestamp }),
+            });
 
-            try {
-              const response = await fetch(url);
-              if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-              }
-
-              const data = await response.text();
-              document.getElementById('result').innerText = data; // Display response to user
-            } catch (error) {
-              console.error(`Error while sending request: ${error.message}`);
-              document.getElementById('result').innerText = "Error: " + error.message;
-            } finally {
-              // Clear deviceId after the submission
-              localStorage.removeItem("deviceId");
-              isSubmitting = false;
+            const result = await response.json();
+            if (response.ok) {
+              resultEl.innerText = result.message;
+            } else {
+              errorEl.innerText = result.message || "Error occurred.";
             }
-          },
-          (error) => {
-            alert("Error getting location: " + error.message);
-            isSubmitting = false;
+          } catch (error) {
+            errorEl.innerText = "Error: Unable to connect to the server.";
           }
-        );
+        }, () => {
+          errorEl.innerText = "Geolocation is required for attendance.";
+        });
       } else {
-        alert("Geolocation is not supported by this browser.");
-        isSubmitting = false;
+        errorEl.innerText = "Geolocation is not supported by this browser.";
       }
     }
   </script>
