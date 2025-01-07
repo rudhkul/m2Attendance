@@ -60,6 +60,13 @@
         return;
       }
 
+      // Generate or retrieve a unique device ID
+      let deviceId = localStorage.getItem("deviceId");
+      if (!deviceId) {
+        deviceId = crypto.randomUUID(); // Generates a unique identifier
+        localStorage.setItem("deviceId", deviceId);
+      }
+
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
@@ -67,7 +74,6 @@
             const lat = pos.coords.latitude;
             const lon = pos.coords.longitude;
             const timestamp = new Date().toISOString();
-            const deviceId = "browser-client"; // Example device ID (replace as needed)
 
             // Construct the data string to sign
             const dataToSign = `${rollNo}:${lat}:${lon}:${timestamp}:${deviceId}`;
