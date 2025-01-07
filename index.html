@@ -57,9 +57,8 @@
         deviceId = crypto.randomUUID(); // Generates a new unique identifier
         localStorage.setItem("deviceId", deviceId); // Store it for the session
       }
-      console.log(`Device ID used: ${deviceId}`); // Debugging: Log device ID
 
-      // Ensure geolocation is supported
+      // Get user location
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
@@ -67,11 +66,11 @@
             const lon = pos.coords.longitude;
             const timestamp = new Date().toISOString();
 
-            try {
-              // Construct the GET request URL with all parameters
-              const url = `${SCRIPT_URL}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}&timestamp=${encodeURIComponent(timestamp)}&deviceId=${encodeURIComponent(deviceId)}`;
-              console.log(`Request URL: ${url}`); // Debugging: Log the URL
+            // Construct the GET request URL with all parameters
+            const url = `${SCRIPT_URL}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}&timestamp=${encodeURIComponent(timestamp)}&deviceId=${encodeURIComponent(deviceId)}`;
+            console.log(`Request URL: ${url}`);
 
+            try {
               const response = await fetch(url);
               if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
@@ -80,7 +79,7 @@
               const data = await response.text();
               document.getElementById('result').innerText = data; // Display response to user
             } catch (error) {
-              console.error(`Error while sending request: ${error.message}`); // Debugging: Log error
+              console.error(`Error while sending request: ${error.message}`);
               document.getElementById('result').innerText = "Error: " + error.message;
             } finally {
               // Clear deviceId after the submission
@@ -89,21 +88,7 @@
             }
           },
           (error) => {
-            let errorMessage = "";
-            switch (error.code) {
-              case error.PERMISSION_DENIED:
-                errorMessage = "User denied the request for Geolocation.";
-                break;
-              case error.POSITION_UNAVAILABLE:
-                errorMessage = "Location information is unavailable.";
-                break;
-              case error.TIMEOUT:
-                errorMessage = "The request to get user location timed out.";
-                break;
-              default:
-                errorMessage = "An unknown error occurred.";
-            }
-            alert(errorMessage);
+            alert("Error getting location: " + error.message);
             isSubmitting = false;
           }
         );
