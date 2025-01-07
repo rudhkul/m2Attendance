@@ -33,30 +33,13 @@
 
   <script>
     // Replace with your actual Google Apps Script Web App URL
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0fNG5XPLXrKMWY1n3NRojkiaf87rVznH5WOGiBV2bCQH6K0AOyCeM5fUpjV4LzsX8lQ/exec";
-
-    // Secret key for HMAC (do not expose this in production or public-facing apps)
-    const SECRET_KEY = "jK9i3l$YxQ5_rT7p!8mNc4&LzZ2vXo@HfBqKw%6Aa#G";
-
-    // Helper function to generate HMAC SHA-256 signature
-    async function generateSignature(data, secretKey) {
-      const encoder = new TextEncoder();
-      const key = await crypto.subtle.importKey(
-        "raw",
-        encoder.encode(secretKey),
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-      );
-      const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(data));
-      return btoa(String.fromCharCode(...new Uint8Array(signature)));
-    }
+    const SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
 
     async function submitAttendance() {
       const rollNo = document.getElementById('rollNo').value.trim();
       
-      if (!rollNo) {
-        alert("Please enter your Roll No.");
+      if (!rollNo || !/^\d{5}$/.test(rollNo)) { // Validate Roll No (e.g., 5-digit format)
+        alert("Please enter a valid Roll No.");
         return;
       }
 
@@ -70,37 +53,43 @@
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
-            // Extract user's location
             const lat = pos.coords.latitude;
             const lon = pos.coords.longitude;
             const timestamp = new Date().toISOString();
 
-            // Construct the data string to sign
-            const dataToSign = `${rollNo}:${lat}:${lon}:${timestamp}:${deviceId}`;
-            
-            // Generate HMAC signature
-            const signature = await generateSignature(dataToSign, SECRET_KEY);
-
             // Construct the GET request URL with all parameters
-            const url = `${SCRIPT_URL}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}&timestamp=${encodeURIComponent(timestamp)}&deviceId=${encodeURIComponent(deviceId)}&signature=${encodeURIComponent(signature)}`;
+            const url = `${SCRIPT_URL}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}&timestamp=${encodeURIComponent(timestamp)}&deviceId=${encodeURIComponent(deviceId)}`;
 
-            // Log the generated URL for debugging
-            console.log(`Generated URL: ${url}`);
-
-            // Send the GET request to the backend
             fetch(url)
-              .then(response => response.text())
+              .then(response => {
+                if (!response.ok) {
+                  throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.text();
+              })
               .then(data => {
-                console.log(`Response from server: ${data}`); // Log the server response
-                document.getElementById('result').innerText = data; // Display the response to the user
+                document.getElementById('result').innerText = data; // Display response to user
               })
               .catch(error => {
-                console.error(`Error while sending request: ${error}`); // Log any errors
-                document.getElementById('result').innerText = "Error: " + error;
+                document.getElementById('result').innerText = "Error: " + error.message;
               });
           },
           (error) => {
-            alert("Location access denied or unavailable.");
+            let errorMessage = "";
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage = "User denied the request for Geolocation.";
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage = "Location information is unavailable.";
+                break;
+              case error.TIMEOUT:
+                errorMessage = "The request to get user location timed out.";
+                break;
+              default:
+                errorMessage = "An unknown error occurred.";
+            }
+            alert(errorMessage);
           }
         );
       } else {
