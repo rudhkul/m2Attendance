@@ -54,8 +54,8 @@
       // Generate or retrieve a unique device ID
       let deviceId = localStorage.getItem("deviceId");
       if (!deviceId) {
-        deviceId = crypto.randomUUID(); // Generates a unique identifier
-        localStorage.setItem("deviceId", deviceId);
+        deviceId = crypto.randomUUID(); // Generates a new unique identifier
+        localStorage.setItem("deviceId", deviceId); // Store it for the session
       }
       console.log(`Device ID used: ${deviceId}`); // Debugging: Log device ID
 
