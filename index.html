@@ -38,7 +38,8 @@
     async function submitAttendance() {
       const rollNo = document.getElementById('rollNo').value.trim();
       
-      if (!rollNo || !/^\d{5}$/.test(rollNo)) { // Validate Roll No (e.g., 5-digit format)
+      // Validate Roll No (e.g., 5-digit format)
+      if (!rollNo || !/^\d{5}$/.test(rollNo)) {
         alert("Please enter a valid Roll No (e.g., 12345).");
         return;
       }
@@ -51,6 +52,7 @@
       }
       console.log(`Device ID used: ${deviceId}`); // Debugging: Log device ID
 
+      // Ensure geolocation is supported
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
@@ -58,23 +60,22 @@
             const lon = pos.coords.longitude;
             const timestamp = new Date().toISOString();
 
-            // Construct the GET request URL with all parameters
-            const url = `${SCRIPT_URL}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}&timestamp=${encodeURIComponent(timestamp)}&deviceId=${encodeURIComponent(deviceId)}`;
+            try {
+              // Construct the GET request URL with all parameters
+              const url = `${SCRIPT_URL}?rollNo=${encodeURIComponent(rollNo)}&lat=${lat}&lon=${lon}&timestamp=${encodeURIComponent(timestamp)}&deviceId=${encodeURIComponent(deviceId)}`;
+              console.log(`Request URL: ${url}`); // Debugging: Log the URL
 
-            fetch(url)
-              .then(response => {
-                if (!response.ok) {
-                  throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.text();
-              })
-              .then(data => {
-                document.getElementById('result').innerText = data; // Display response to user
-              })
-              .catch(error => {
-                console.error(`Error while sending request: ${error.message}`); // Debugging: Log error
-                document.getElementById('result').innerText = "Error: " + error.message;
-              });
+              const response = await fetch(url);
+              if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+              }
+
+              const data = await response.text();
+              document.getElementById('result').innerText = data; // Display response to user
+            } catch (error) {
+              console.error(`Error while sending request: ${error.message}`); // Debugging: Log error
+              document.getElementById('result').innerText = "Error: " + error.message;
+            }
           },
           (error) => {
             let errorMessage = "";
