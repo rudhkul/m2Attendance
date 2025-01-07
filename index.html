@@ -83,6 +83,8 @@
               console.error(`Error while sending request: ${error.message}`); // Debugging: Log error
               document.getElementById('result').innerText = "Error: " + error.message;
             } finally {
+              // Clear deviceId after the submission
+              localStorage.removeItem("deviceId");
               isSubmitting = false;
             }
           },
