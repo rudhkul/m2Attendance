@@ -33,13 +33,13 @@
 
   <script>
     // Replace with your actual Google Apps Script Web App URL
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx0fNG5XPLXrKMWY1n3NRojkiaf87rVznH5WOGiBV2bCQH6K0AOyCeM5fUpjV4LzsX8lQ/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
 
     async function submitAttendance() {
       const rollNo = document.getElementById('rollNo').value.trim();
       
       if (!rollNo || !/^\d{5}$/.test(rollNo)) { // Validate Roll No (e.g., 5-digit format)
-        alert("Please enter a valid Roll No.");
+        alert("Please enter a valid Roll No (e.g., 12345).");
         return;
       }
 
@@ -49,6 +49,7 @@
         deviceId = crypto.randomUUID(); // Generates a unique identifier
         localStorage.setItem("deviceId", deviceId);
       }
+      console.log(`Device ID used: ${deviceId}`); // Debugging: Log device ID
 
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -71,6 +72,7 @@
                 document.getElementById('result').innerText = data; // Display response to user
               })
               .catch(error => {
+                console.error(`Error while sending request: ${error.message}`); // Debugging: Log error
                 document.getElementById('result').innerText = "Error: " + error.message;
               });
           },
